@@ -38,7 +38,7 @@ const modalRevisedText = document.getElementById('modal-revised-text');
 const modalBtnRestore = document.getElementById('modal-btn-restore');
 const modalBtnCopy = document.getElementById('modal-btn-copy');
 
-// Settings Drawer Toggle
+// Settings Drawer
 const settingsBtn = document.getElementById('btn-settings');
 const settingsDrawer = document.getElementById('settings-drawer');
 
@@ -46,19 +46,15 @@ settingsBtn.addEventListener('click', () => {
     settingsDrawer.classList.toggle('open');
 });
 
-// Initialize Preset Prompts
 promptTemplate.value = presets.default;
 
-// Sync scrolling between textarea and line numbers
+// Sync scrolling
 textarea.addEventListener('scroll', () => {
     lineNumbers.scrollTop = textarea.scrollTop;
 });
 
-// Update Line Numbers & Stats
 function updateEditorMetrics() {
     const text = textarea.value;
-
-    // Line Numbers
     const lines = text.split('\n');
     let lineHtml = '';
     for (let i = 1; i <= Math.max(lines.length, 1); i++) {
@@ -67,9 +63,7 @@ function updateEditorMetrics() {
     lineNumbers.innerHTML = lineHtml;
     lineNumbers.scrollTop = textarea.scrollTop;
 
-    // Character & Word Counts
     charCountSpan.textContent = `${text.length} ${text.length === 1 ? 'caractere' : 'caracteres'}`;
-
     const words = text.trim() ? text.trim().split(/\s+/).length : 0;
     wordCountSpan.textContent = `${words} ${words === 1 ? 'palavra' : 'palavras'}`;
 }
@@ -77,9 +71,9 @@ function updateEditorMetrics() {
 textarea.addEventListener('input', updateEditorMetrics);
 updateEditorMetrics();
 
-// Load Ollama Models
+// Fetch models from Ollama
 async function fetchModels() {
-    connectionDot.className = 'status-dot disconnected';
+    connectionDot.className = 'dot disconnected';
     connectionStatus.textContent = 'Buscando...';
     modelSelect.innerHTML = '<option value="">Carregando...</option>';
 
@@ -90,65 +84,47 @@ async function fetchModels() {
         if (data.success && data.models.length > 0) {
             modelsList = data.models;
             modelSelect.innerHTML = '';
-
             modelsList.forEach(model => {
                 const option = document.createElement('option');
                 option.value = model;
                 option.textContent = model;
                 modelSelect.appendChild(option);
             });
-
             const defaultModel = modelsList.find(m => m.includes('qwen') || m.includes('llama') || m.includes('mistral')) || modelsList[0];
             modelSelect.value = defaultModel;
             selectedModel = defaultModel;
-
-            connectionDot.className = 'status-dot connected';
+            connectionDot.className = 'dot connected';
             connectionStatus.textContent = 'Conectado';
             updateActionStatus('idle', 'Pronto');
         } else {
             throw new Error(data.error || 'Nenhum modelo instalado.');
         }
     } catch (error) {
-        console.error(error);
         modelSelect.innerHTML = '<option value="">Sem modelos</option>';
-        connectionDot.className = 'status-dot disconnected';
+        connectionDot.className = 'dot disconnected';
         connectionStatus.textContent = 'Offline';
         updateActionStatus('error', error.message || 'Falha ao conectar.');
     }
 }
 
-modelSelect.addEventListener('change', (e) => {
-    selectedModel = e.target.value;
-});
-
+modelSelect.addEventListener('change', (e) => { selectedModel = e.target.value; });
 refreshModelsBtn.addEventListener('click', () => {
     const icon = refreshModelsBtn.querySelector('i');
     icon.classList.add('spinning');
-    fetchModels().finally(() => {
-        setTimeout(() => icon.classList.remove('spinning'), 600);
-    });
+    fetchModels().finally(() => setTimeout(() => icon.classList.remove('spinning'), 600));
 });
 
-// Prompt presets change handler
 presetSelect.addEventListener('change', (e) => {
-    const val = e.target.value;
-    if (presets[val]) {
-        promptTemplate.value = presets[val];
-    }
+    if (presets[e.target.value]) promptTemplate.value = presets[e.target.value];
 });
+tempInput.addEventListener('input', (e) => { tempVal.textContent = e.target.value; });
 
-// Temperature slider
-tempInput.addEventListener('input', (e) => {
-    tempVal.textContent = e.target.value;
-});
-
-// Action Status Helper
 function updateActionStatus(state, message) {
-    actionIndicatorLight.className = `status-indicator-light ${state}`;
+    actionIndicatorLight.className = `status-light ${state}`;
     actionStatus.textContent = message;
 }
 
-// History Manager
+// History
 function addHistoryItem(original, revised) {
     const id = Date.now();
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -166,10 +142,8 @@ function renderHistory() {
         const div = document.createElement('div');
         div.className = 'history-item';
         div.addEventListener('click', () => openHistoryModal(item.id));
-
         const origSnippet = item.original.length > 30 ? item.original.substring(0, 30) + '...' : item.original;
         const revSnippet = item.revised.length > 30 ? item.revised.substring(0, 30) + '...' : item.revised;
-
         div.innerHTML = `
             <div class="history-item-time">${item.time}</div>
             <div class="history-item-preview original-prev">${escapeHtml(origSnippet)}</div>
@@ -179,155 +153,84 @@ function renderHistory() {
     });
 }
 
-function escapeHtml(str) {
-    return str
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+function escapeHtml(str) { /* ... */ 
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
+clearHistoryBtn.addEventListener('click', () => { revisionsHistory = []; renderHistory(); });
 
-clearHistoryBtn.addEventListener('click', () => {
-    revisionsHistory = [];
-    renderHistory();
-});
-
-// Modal Logic
 function openHistoryModal(id) {
     const item = revisionsHistory.find(i => i.id === id);
     if (!item) return;
     activeRevisionId = id;
-    modalOriginalText.innerHTML = generateDiffHTML(item.original, item.revised).originalHTML;
-    modalRevisedText.innerHTML = generateDiffHTML(item.original, item.revised).revisedHTML;
+    modalOriginalText.innerHTML = `<del>${escapeHtml(item.original)}</del>`;
+    modalRevisedText.innerHTML = `<ins>${escapeHtml(item.revised)}</ins>`;
     historyModal.classList.add('active');
 }
-
-function closeHistoryModal() {
-    historyModal.classList.remove('active');
-    activeRevisionId = null;
-}
-
+function closeHistoryModal() { historyModal.classList.remove('active'); activeRevisionId = null; }
 closeModalBtn.addEventListener('click', closeHistoryModal);
-historyModal.addEventListener('click', (e) => {
-    if (e.target === historyModal) closeHistoryModal();
-});
+historyModal.addEventListener('click', (e) => { if (e.target === historyModal) closeHistoryModal(); });
 
-// Simple Diff Generator
-function generateDiffHTML(original, revised) {
-    return {
-        originalHTML: `<del>${escapeHtml(original)}</del>`,
-        revisedHTML: `<ins>${escapeHtml(revised)}</ins>`
-    };
-}
-
-// Restore Original Text from modal
 modalBtnRestore.addEventListener('click', () => {
-    if (activeRevisionId === null) return;
+    if (!activeRevisionId) return;
     const item = revisionsHistory.find(i => i.id === activeRevisionId);
     if (!item) return;
-
     const currentText = textarea.value;
     const index = currentText.indexOf(item.revised);
     if (index !== -1) {
-        const valBefore = currentText.substring(0, index);
-        const valAfter = currentText.substring(index + item.revised.length);
-        textarea.value = valBefore + item.original + valAfter;
+        const before = currentText.substring(0, index);
+        const after = currentText.substring(index + item.revised.length);
+        textarea.value = before + item.original + after;
         updateEditorMetrics();
-
-        const cursorPosition = index + item.original.length;
-        textarea.setSelectionRange(cursorPosition, cursorPosition);
+        textarea.setSelectionRange(index + item.original.length, index + item.original.length);
         textarea.focus();
-
         updateActionStatus('idle', 'Original restaurado');
         closeHistoryModal();
-    } else {
-        alert("Não foi possível restaurar. O texto revisado foi modificado no editor.");
-    }
+    } else alert("Não foi possível restaurar. O texto revisado foi modificado.");
 });
-
-// Copy Revised Text from modal
 modalBtnCopy.addEventListener('click', () => {
-    if (activeRevisionId === null) return;
+    if (!activeRevisionId) return;
     const item = revisionsHistory.find(i => i.id === activeRevisionId);
-    if (!item) return;
-
-    navigator.clipboard.writeText(item.revised).then(() => {
-        const originalText = modalBtnCopy.innerHTML;
-        modalBtnCopy.innerHTML = '<i class="fa-solid fa-check"></i> Copiado!';
-        setTimeout(() => { modalBtnCopy.innerHTML = originalText; }, 1500);
+    if (item) navigator.clipboard.writeText(item.revised).then(() => {
+        modalBtnCopy.innerHTML = '<i class="fa-regular fa-check"></i> Copiado!';
+        setTimeout(() => modalBtnCopy.innerHTML = '<i class="fa-regular fa-copy"></i> Copiar revisado', 1500);
     });
 });
 
-// Editor Action Buttons
 document.getElementById('btn-copy').addEventListener('click', () => {
     navigator.clipboard.writeText(textarea.value).then(() => {
         const btn = document.getElementById('btn-copy');
-        const originalHTML = btn.innerHTML;
-        btn.innerHTML = '<i class="fa-solid fa-check"></i> Copiado!';
-        setTimeout(() => { btn.innerHTML = originalHTML; }, 1500);
+        btn.innerHTML = '<i class="fa-regular fa-check"></i> Copiado!';
+        setTimeout(() => btn.innerHTML = '<i class="fa-regular fa-copy"></i> Copiar', 1500);
     });
 });
-
 document.getElementById('btn-clear').addEventListener('click', () => {
-    if (confirm('Tem certeza de que deseja limpar todo o editor?')) {
-        textarea.value = '';
-        updateEditorMetrics();
-        textarea.focus();
-    }
+    if (confirm('Limpar todo o editor?')) { textarea.value = ''; updateEditorMetrics(); textarea.focus(); }
 });
 
-// Core Trigger Revision Algorithm
+// Core revision trigger using [texto]
 let isProcessing = false;
-
-// Regex: ***text*** or ***text**
-const revisionRegex = /\*\*\*((?:(?!\*\*\*).)+?)\*{2,3}/s;
+const revisionRegex = /\[([^\[\]§\n][^\[\]§\n]*)\]/;
+const PLACEHOLDER_PREFIX = '§revisando§:';
 
 async function checkAndTriggerRevision() {
     if (isProcessing) return;
-
     const text = textarea.value;
     const match = text.match(revisionRegex);
-
     if (match) {
         isProcessing = true;
-
         const fullMatch = match[0];
         const textToRevise = match[1];
-
         const matchIndex = text.indexOf(fullMatch);
         if (matchIndex === -1) { isProcessing = false; return; }
-
         const truncatedText = textToRevise.trim().substring(0, 15);
-        const uniquePlaceholder = `[Revisando: "${truncatedText}..." ]`;
-
-        const valBefore = text.substring(0, matchIndex);
-        const valAfter = text.substring(matchIndex + fullMatch.length);
-
-        const selStart = textarea.selectionStart;
-        const selEnd = textarea.selectionEnd;
-
-        textarea.value = valBefore + uniquePlaceholder + valAfter;
+        const uniquePlaceholder = `[${PLACEHOLDER_PREFIX} "${truncatedText}..."]`;
+        const before = text.substring(0, matchIndex);
+        const after = text.substring(matchIndex + fullMatch.length);
+        textarea.value = before + uniquePlaceholder + after;
         updateEditorMetrics();
-
-        let newSelStart = selStart;
-        let newSelEnd = selEnd;
-        const placeholderDiff = uniquePlaceholder.length - fullMatch.length;
-
-        if (selStart > matchIndex + fullMatch.length) { newSelStart += placeholderDiff; }
-        else if (selStart > matchIndex) { newSelStart = matchIndex + uniquePlaceholder.length; }
-
-        if (selEnd > matchIndex + fullMatch.length) { newSelEnd += placeholderDiff; }
-        else if (selEnd > matchIndex) { newSelEnd = matchIndex + uniquePlaceholder.length; }
-        textarea.setSelectionRange(newSelStart, newSelEnd);
-
         updateActionStatus('revising', 'Revisando com IA...');
-
         try {
-            if (!selectedModel) {
-                throw new Error("Selecione um modelo na barra superior.");
-            }
-
+            if (!selectedModel) throw new Error("Selecione um modelo.");
             const response = await fetch('/api/revise', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -338,46 +241,27 @@ async function checkAndTriggerRevision() {
                     temperature: parseFloat(tempInput.value)
                 })
             });
-
             const data = await response.json();
-
             if (data.success) {
                 const revisedText = data.revised;
-                const currentText = textarea.value;
-                const placeholderIndex = currentText.indexOf(uniquePlaceholder);
-
+                const curText = textarea.value;
+                const placeholderIndex = curText.indexOf(uniquePlaceholder);
                 if (placeholderIndex !== -1) {
-                    const before = currentText.substring(0, placeholderIndex);
-                    const after = currentText.substring(placeholderIndex + uniquePlaceholder.length);
-                    textarea.value = before + revisedText + after;
-
-                    const curSel = textarea.selectionStart;
-                    const finalDiff = revisedText.length - uniquePlaceholder.length;
-                    let fStart = curSel, fEnd = textarea.selectionEnd;
-
-                    if (curSel > placeholderIndex + uniquePlaceholder.length) { fStart += finalDiff; }
-                    else if (curSel > placeholderIndex) { fStart = placeholderIndex + revisedText.length; }
-                    if (fEnd > placeholderIndex + uniquePlaceholder.length) { fEnd += finalDiff; }
-                    else if (fEnd > placeholderIndex) { fEnd = placeholderIndex + revisedText.length; }
-
-                    textarea.setSelectionRange(fStart, fEnd);
+                    const before2 = curText.substring(0, placeholderIndex);
+                    const after2 = curText.substring(placeholderIndex + uniquePlaceholder.length);
+                    textarea.value = before2 + revisedText + after2;
                 }
-
                 updateActionStatus('idle', 'Revisão concluída ✓');
                 addHistoryItem(textToRevise, revisedText);
-            } else {
-                throw new Error(data.error || "Erro desconhecido.");
-            }
+            } else throw new Error(data.error || "Erro desconhecido.");
         } catch (error) {
-            console.error(error);
             updateActionStatus('error', `Erro: ${error.message}`);
-
-            const currentText = textarea.value;
-            const placeholderIndex = currentText.indexOf(uniquePlaceholder);
+            const curText = textarea.value;
+            const placeholderIndex = curText.indexOf(uniquePlaceholder);
             if (placeholderIndex !== -1) {
-                const before = currentText.substring(0, placeholderIndex);
-                const after = currentText.substring(placeholderIndex + uniquePlaceholder.length);
-                textarea.value = before + textToRevise + after;
+                const before2 = curText.substring(0, placeholderIndex);
+                const after2 = curText.substring(placeholderIndex + uniquePlaceholder.length);
+                textarea.value = before2 + textToRevise + after2;
             }
         } finally {
             updateEditorMetrics();
@@ -386,9 +270,5 @@ async function checkAndTriggerRevision() {
         }
     }
 }
-
-// Listen for input to trigger revision
 textarea.addEventListener('input', checkAndTriggerRevision);
-
-// Initial Load
 fetchModels();

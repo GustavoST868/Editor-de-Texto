@@ -42,12 +42,11 @@ def revise_text():
     if not prompt_template:
         prompt_template = (
             "Revise o seguinte texto para melhorar a clareza e fluidez. "
-            "Você deve manter o estilo de escrita."
+            "Você deve manter o estilo de escrita. "
             "Retorne APENAS o texto revisado, sem comentários, explicações ou aspas extras.\n\n"
             "Texto:\n{text}"
         )
 
-    # Insert text into template
     prompt = prompt_template.replace("{text}", text)
 
     payload = {
@@ -71,10 +70,9 @@ def revise_text():
         return jsonify({"success": False, "error": f"Falha de comunicação com o Ollama: {str(e)}"})
 
 if __name__ == "__main__":
-    # Ensure templates directory exists
     os.makedirs("templates", exist_ok=True)
     os.makedirs("static", exist_ok=True)
     
-    port = int(os.environ.get("PORT", 5001))
+    port = int(os.environ.get("PORT", 5010))
     print(f"Iniciando o Escrita na porta {port}...")
     app.run(host="0.0.0.0", port=port, debug=True)

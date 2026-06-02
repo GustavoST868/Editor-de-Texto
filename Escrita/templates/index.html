@@ -1,44 +1,42 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escrita</title>
-    <meta name="description" content="Editor de texto minimalista com revisão inteligente por IA via Ollama.">
+    <title>escrita — editor com IA</title>
+    <meta name="description" content="Editor minimalista com revisão inteligente via Ollama.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600&family=JetBrains+Mono:wght@400;500&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-
 <body>
-    <div class="app-container">
-        <!-- Top Bar -->
+    <div class="app">
+        <!-- Barra superior -->
         <header class="topbar">
             <div class="topbar-left">
                 <div class="logo">
-
+                    <span class="logo-mark">✎</span>
+                    <span class="logo-text">escrita</span>
                 </div>
-                <span class="topbar-sep"></span>
-                <span class="file-tag"><i class="fa-regular fa-file-lines"></i> documento.txt</span>
+                <div class="topbar-sep"></div>
+                <span class="file-badge"><i class="fa-regular fa-file-lines"></i> rascunho.md</span>
             </div>
+
             <div class="topbar-center">
-                <div class="toolbar-group">
-                    <label for="model-select" class="toolbar-label"><i class="fa-solid fa-microchip"></i></label>
-                    <select id="model-select">
-                        <option value="">Carregando...</option>
-                    </select>
-                    <button id="refresh-models" class="toolbar-btn" title="Recarregar modelos"><i
-                            class="fa-solid fa-arrows-rotate"></i></button>
+                <div class="tool-group">
+                    <i class="fa-solid fa-microchip"></i>
+                    <select id="model-select"></select>
+                    <button id="refresh-models" class="icon-btn" title="Recarregar modelos">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                    </button>
                 </div>
-                <span class="topbar-sep"></span>
-                <div class="toolbar-group">
-                    <label for="preset-select" class="toolbar-label"><i
-                            class="fa-solid fa-wand-magic-sparkles"></i></label>
+
+                <div class="tool-sep"></div>
+
+                <div class="tool-group">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
                     <select id="preset-select">
                         <option value="default">Padrão</option>
                         <option value="formal">Formal</option>
@@ -47,106 +45,106 @@
                         <option value="creative">Criativo</option>
                     </select>
                 </div>
-                <span class="topbar-sep"></span>
-                <div class="toolbar-group temp-group">
-                    <label for="temperature" class="toolbar-label"><i class="fa-solid fa-fire-flame-curved"></i></label>
+
+                <div class="tool-sep"></div>
+
+                <div class="tool-group temp">
+                    <i class="fa-solid fa-fire-flame-curved"></i>
                     <input type="range" id="temperature" min="0.1" max="1.2" step="0.05" value="0.7">
-                    <span class="temp-badge" id="temp-val">0.7</span>
+                    <span id="temp-val">0.7</span>
                 </div>
             </div>
+
             <div class="topbar-right">
-                <div class="connection-badge" id="status-badge">
-                    <span class="status-dot disconnected" id="connection-dot"></span>
-                    <span class="status-text" id="connection-status">Ollama</span>
+                <div class="conn-status">
+                    <span class="dot" id="connection-dot"></span>
+                    <span id="connection-status">Ollama</span>
                 </div>
-                <button id="btn-settings" class="toolbar-btn" title="Configurações"><i
-                        class="fa-solid fa-gear"></i></button>
+                <button id="btn-settings" class="icon-btn" title="Configurações">
+                    <i class="fa-solid fa-sliders"></i>
+                </button>
             </div>
         </header>
 
-        <!-- Settings Drawer (hidden by default) -->
-        <div class="settings-drawer" id="settings-drawer">
-            <div class="drawer-content">
-                <div class="drawer-section">
-                    <label><i class="fa-solid fa-terminal"></i> Prompt do Sistema</label>
+        <!-- Painel de configurações (drawer) -->
+        <div class="drawer" id="settings-drawer">
+            <div class="drawer-inner">
+                <div class="drawer-col">
+                    <label><i class="fa-regular fa-message"></i> Prompt do sistema</label>
                     <textarea id="prompt-template" placeholder="Prompt usado para revisar o texto..."></textarea>
-                    <span class="prompt-hint">Use <code>{text}</code> como placeholder para o trecho.</span>
+                    <small>Use <code>{text}</code> como placeholder para o trecho selecionado.</small>
                 </div>
-                <div class="drawer-section">
-                    <label><i class="fa-solid fa-sparkles"></i> Como usar</label>
-                    <div class="code-example"><code>***seu texto aqui***</code></div>
-                    <span class="prompt-hint">Envolva o trecho com <code>***</code> e a IA reescreve
-                        automaticamente.</span>
+                <div class="drawer-col">
+                    <label><i class="fa-regular fa-lightbulb"></i> Como usar</label>
+                    <div class="example">[seu texto aqui]</div>
+                    <small>Envolva qualquer trecho com <code>[</code> e <code>]</code>. A IA reescreve automaticamente.</small>
                 </div>
-                <div class="drawer-section">
+                <div class="drawer-col">
                     <div class="history-header">
-                        <label><i class="fa-solid fa-clock-rotate-left"></i> Histórico</label>
-                        <button id="clear-history" class="btn-icon-sm" title="Limpar"><i
-                                class="fa-solid fa-trash-can"></i></button>
+                        <label><i class="fa-regular fa-clock"></i> Histórico</label>
+                        <button id="clear-history" class="icon-btn tiny" title="Limpar histórico">
+                            <i class="fa-regular fa-trash-can"></i>
+                        </button>
                     </div>
                     <div class="history-list" id="history-list">
-                        <div class="history-empty">Nenhuma revisão feita ainda.</div>
+                        <div class="history-empty">Nenhuma revisão ainda.</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Editor -->
-        <main class="editor-area">
-            <div class="editor-workspace">
-                <div class="line-numbers-container" id="line-numbers">
+        <!-- Área principal do editor -->
+        <main class="editor-main">
+            <div class="editor-container">
+                <div class="line-numbers" id="line-numbers">
                     <div>1</div>
                 </div>
-                <textarea id="editor" autofocus placeholder="" spellcheck="false"></textarea>
+                <textarea id="editor" autofocus spellcheck="false" placeholder="Digite ou cole seu texto…&#10;&#10;Para revisar, envolva o trecho com colchetes, ex: &#10;[Este é o texto que quero melhorar]"></textarea>
             </div>
+
             <footer class="editor-footer">
                 <div class="footer-left">
-                    <span class="status-indicator-light" id="action-indicator-light"></span>
+                    <span class="status-light" id="action-indicator-light"></span>
                     <span id="action-status">Pronto</span>
                 </div>
                 <div class="footer-right">
-                    <button id="btn-copy" class="footer-btn" title="Copiar tudo"><i class="fa-regular fa-copy"></i>
-                        Copiar</button>
-                    <button id="btn-clear" class="footer-btn danger" title="Limpar"><i
-                            class="fa-regular fa-trash-can"></i> Limpar</button>
-                    <span class="footer-sep"></span>
+                    <button id="btn-copy" class="text-btn"><i class="fa-regular fa-copy"></i> Copiar</button>
+                    <button id="btn-clear" class="text-btn danger"><i class="fa-regular fa-trash-can"></i> Limpar</button>
+                    <span class="sep"></span>
                     <span id="word-count">0 palavras</span>
-                    <span class="footer-sep"></span>
+                    <span class="sep"></span>
                     <span id="char-count">0 caracteres</span>
                 </div>
             </footer>
         </main>
     </div>
 
-    <!-- Modal -->
-    <div class="modal-backdrop" id="history-modal">
-        <div class="modal-content">
+    <!-- Modal de comparação -->
+    <div class="modal" id="history-modal">
+        <div class="modal-card">
             <div class="modal-header">
-                <h2><i class="fa-solid fa-code-compare"></i> Comparação</h2>
+                <h2><i class="fa-regular fa-code-compare"></i> Comparar revisão</h2>
                 <button class="modal-close" id="close-modal">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="diff-container">
-                    <div class="diff-box original">
-                        <h3><i class="fa-solid fa-minus-circle"></i> Original</h3>
-                        <div class="diff-text-content" id="modal-original-text"></div>
+                <div class="diff-pane">
+                    <div class="diff-col original">
+                        <h3><i class="fa-regular fa-rectangle-xmark"></i> Original</h3>
+                        <div class="diff-text" id="modal-original-text"></div>
                     </div>
-                    <div class="diff-box revised">
-                        <h3><i class="fa-solid fa-plus-circle"></i> Revisado</h3>
-                        <div class="diff-text-content" id="modal-revised-text"></div>
+                    <div class="diff-col revised">
+                        <h3><i class="fa-regular fa-rectangle-check"></i> Revisado</h3>
+                        <div class="diff-text" id="modal-revised-text"></div>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button id="modal-btn-restore" class="modal-btn primary"><i class="fa-solid fa-rotate-left"></i>
-                    Restaurar</button>
-                <button id="modal-btn-copy" class="modal-btn secondary"><i class="fa-regular fa-copy"></i> Copiar
-                    Revisado</button>
+                <button id="modal-btn-restore" class="btn-primary"><i class="fa-regular fa-undo"></i> Restaurar original</button>
+                <button id="modal-btn-copy" class="btn-secondary"><i class="fa-regular fa-copy"></i> Copiar revisado</button>
             </div>
         </div>
     </div>
 
     <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
-
 </html>
