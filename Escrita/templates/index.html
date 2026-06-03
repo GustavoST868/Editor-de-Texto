@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dusk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,13 +7,14 @@
     <meta name="description" content="Editor minimalista com revisão inteligente via Ollama.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600&family=JetBrains+Mono:wght@400;500&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Geist+Mono:wght@300;400;500&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&family=DM+Mono:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@300;400;500&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Fragment+Mono:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Syne+Mono&family=Lora:ital,wght@0,400;0,600;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="app">
-        <!-- Barra superior -->
+
+        <!-- ─── Topbar ─────────────────────────────────────────────── -->
         <header class="topbar">
             <div class="topbar-left">
                 <div class="logo">
@@ -21,10 +22,14 @@
                     <span class="logo-text">escrita</span>
                 </div>
                 <div class="topbar-sep"></div>
-                <span class="file-badge"><i class="fa-regular fa-file-lines"></i> rascunho.md</span>
+                <span class="file-badge">
+                    <i class="fa-regular fa-file-lines"></i>
+                    rascunho.md
+                </span>
             </div>
 
             <div class="topbar-center">
+                <!-- Modelo -->
                 <div class="tool-group">
                     <i class="fa-solid fa-microchip"></i>
                     <select id="model-select"></select>
@@ -35,6 +40,7 @@
 
                 <div class="tool-sep"></div>
 
+                <!-- Preset -->
                 <div class="tool-group">
                     <i class="fa-solid fa-wand-magic-sparkles"></i>
                     <select id="preset-select">
@@ -48,6 +54,7 @@
 
                 <div class="tool-sep"></div>
 
+                <!-- Temperatura -->
                 <div class="tool-group temp">
                     <i class="fa-solid fa-fire-flame-curved"></i>
                     <input type="range" id="temperature" min="0.1" max="1.2" step="0.05" value="0.7">
@@ -56,33 +63,59 @@
             </div>
 
             <div class="topbar-right">
+                <!-- Temas -->
+                <span class="theme-label">tema</span>
+                <div class="theme-picker">
+                    <button class="theme-btn active" data-theme="dusk"  title="Dusk — pergaminho"></button>
+                    <button class="theme-btn"        data-theme="noir"  title="Noir — carvão"></button>
+                    <button class="theme-btn"        data-theme="stone" title="Stone — cinza editorial"></button>
+                    <button class="theme-btn"        data-theme="moss"  title="Moss — floresta"></button>
+                    <button class="theme-btn"        data-theme="chalk" title="Chalk — branco limpo"></button>
+                    <button class="theme-btn"        data-theme="sepia" title="Sepia — âmbar profundo"></button>
+                </div>
+
+                <div class="tool-sep"></div>
+
+                <!-- Fontes -->
+                <div class="font-picker">
+                    <button class="font-btn active" data-font="serif"     title="Serifada clássica" style="font-family: 'EB Garamond', serif;">A</button>
+                    <button class="font-btn"        data-font="modern"    title="Serifada moderna"  style="font-family: 'Playfair Display', serif;">A</button>
+                    <button class="font-btn"        data-font="editorial" title="Editorial elegante" style="font-family: 'Lora', serif;">A</button>
+                    <button class="font-btn"        data-font="mono"      title="Monoespaçada"      style="font-family: 'DM Mono', monospace;">A</button>
+                </div>
+
+                <div class="tool-sep"></div>
+
+                <!-- Status conexão -->
                 <div class="conn-status">
                     <span class="dot" id="connection-dot"></span>
                     <span id="connection-status">Ollama</span>
                 </div>
+
+                <!-- Configurações -->
                 <button id="btn-settings" class="icon-btn" title="Configurações">
                     <i class="fa-solid fa-sliders"></i>
                 </button>
             </div>
         </header>
 
-        <!-- Painel de configurações (drawer) -->
+        <!-- ─── Drawer de configurações ────────────────────────────── -->
         <div class="drawer" id="settings-drawer">
             <div class="drawer-inner">
                 <div class="drawer-col">
                     <label><i class="fa-regular fa-message"></i> Prompt do sistema</label>
-                    <textarea id="prompt-template" placeholder="Prompt usado para revisar o texto..."></textarea>
+                    <textarea id="prompt-template" placeholder="Prompt usado para revisar o texto..." rows="5"></textarea>
                     <small>Use <code>{text}</code> como placeholder para o trecho selecionado.</small>
                 </div>
                 <div class="drawer-col">
                     <label><i class="fa-regular fa-lightbulb"></i> Como usar</label>
                     <div class="example">[seu texto aqui]</div>
-                    <small>Envolva qualquer trecho com <code>[</code> e <code>]</code>. A IA reescreve automaticamente.</small>
+                    <small>Envolva qualquer trecho com <code>[</code> e <code>]</code>. A IA reescreve automaticamente ao fechar o colchete.</small>
                 </div>
                 <div class="drawer-col">
                     <div class="history-header">
-                        <label><i class="fa-regular fa-clock"></i> Histórico</label>
-                        <button id="clear-history" class="icon-btn tiny" title="Limpar histórico">
+                        <label><i class="fa-regular fa-clock"></i> Histórico de revisões</label>
+                        <button id="clear-history" class="icon-btn" title="Limpar histórico">
                             <i class="fa-regular fa-trash-can"></i>
                         </button>
                     </div>
@@ -93,22 +126,34 @@
             </div>
         </div>
 
-        <!-- Área principal do editor -->
+        <!-- ─── Editor ─────────────────────────────────────────────── -->
         <main class="editor-main">
             <div class="editor-container">
                 <div class="line-numbers" id="line-numbers">
                     <div>1</div>
                 </div>
-                <textarea id="editor" autofocus spellcheck="false" placeholder="Digite ou cole seu texto…&#10;&#10;Para revisar, envolva o trecho com colchetes, ex: &#10;[Este é o texto que quero melhorar]"></textarea>
+                <textarea
+                    id="editor"
+                    autofocus
+                    spellcheck="false"
+                    placeholder="Digite ou cole seu texto…&#10;&#10;Para revisar, envolva o trecho com colchetes:&#10;[Este é o texto que quero melhorar com IA]"
+                ></textarea>
             </div>
 
             <footer class="editor-footer">
                 <div class="footer-left">
-                    <span class="status-light" id="action-indicator-light"></span>
+                    <span class="status-light idle" id="action-indicator-light"></span>
                     <span id="action-status">Pronto</span>
                 </div>
                 <div class="footer-right">
-                    <button id="btn-copy" class="text-btn"><i class="fa-regular fa-copy"></i> Copiar</button>
+                    <!-- Tamanho da fonte -->
+                    <div class="font-size-controls">
+                        <button class="size-btn" id="font-decrease" title="Diminuir fonte">−</button>
+                        <span class="font-size-label" id="font-size-label">20</span>
+                        <button class="size-btn" id="font-increase" title="Aumentar fonte">+</button>
+                    </div>
+                    <span class="sep"></span>
+                    <button id="btn-copy"  class="text-btn"><i class="fa-regular fa-copy"></i> Copiar</button>
                     <button id="btn-clear" class="text-btn danger"><i class="fa-regular fa-trash-can"></i> Limpar</button>
                     <span class="sep"></span>
                     <span id="word-count">0 palavras</span>
@@ -119,7 +164,7 @@
         </main>
     </div>
 
-    <!-- Modal de comparação -->
+    <!-- ─── Modal de comparação ───────────────────────────────── -->
     <div class="modal" id="history-modal">
         <div class="modal-card">
             <div class="modal-header">
@@ -139,8 +184,12 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button id="modal-btn-restore" class="btn-primary"><i class="fa-regular fa-undo"></i> Restaurar original</button>
-                <button id="modal-btn-copy" class="btn-secondary"><i class="fa-regular fa-copy"></i> Copiar revisado</button>
+                <button id="modal-btn-restore" class="btn-primary">
+                    <i class="fa-regular fa-rotate-left"></i> Restaurar original
+                </button>
+                <button id="modal-btn-copy" class="btn-secondary">
+                    <i class="fa-regular fa-copy"></i> Copiar revisado
+                </button>
             </div>
         </div>
     </div>
